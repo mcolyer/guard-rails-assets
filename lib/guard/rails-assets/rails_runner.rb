@@ -47,11 +47,24 @@ module Guard
       return false unless @@rails_booted
       begin
         Rake::Task['assets:clean'].execute
+        clear_cached_assets_dependencies
         Rake::Task['assets:precompile'].execute
         true
       rescue => e
         puts "An error occurred compiling assets: #{e}"
         false
+      end
+    end
+  protected
+    # Purges cached assets dependencies, as their circular dependency
+    # checking fails because it's never cleared by rails.
+    #
+    # @return nothing.
+    def clear_cached_assets_dependencies
+      cached_assets = ::Rails.application.assets.instance_variable_get(:@assets)
+      cached_assets.each do |path, cached_asset|
+        options = cached_asset.instance_variable_get(:@options)
+        options[:_requires] = []
       end
     end
   end
